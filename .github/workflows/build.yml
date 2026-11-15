@@ -1,0 +1,47 @@
+name: Build Monetra APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Monetra ZIP
+        run: |
+          unzip monetra-github-build.zip -d extracted
+          cd extracted/monetra
+          echo "PROJECT_DIR=$PWD" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.24.5'
+
+      - name: Build APK
+        run: |
+          cd extracted/monetra
+          flutter create --org id.monetra --project-name monetra --platforms android app
+          cp pubspec.yaml app/pubspec.yaml
+          cp -r lib app/lib
+          cd app
+          flutter pub get
+          flutter analyze
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Monetra-APK
+          path: extracted/monetra/app/build/app/outputs/flutter-apk/app-release.apk
